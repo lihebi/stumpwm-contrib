@@ -78,8 +78,30 @@ is found, just displays nil."
       ;; print a string showing our confusion.
       (t (c) (format nil "~A" c)))))
 
+(defun-cached fmt-wifi-essid 5 (ml)
+  "Formatter for wifi status. Displays the ESSID alone."
+  (declare (ignore ml))
+  (block fmt-wifi
+    (handler-case
+        (let* ((device (or *wireless-device* (guess-wireless-device)))
+               (iwconfig (run-shell-command (format nil "~A ~A 2>/dev/null"
+                                                    *iwconfig-path*
+                                                    device)
+                                            t))
+               (essid (multiple-value-bind (match? sub)
+                          (cl-ppcre:scan-to-strings "ESSID:\"(.*)\"" iwconfig)
+                        (if match?
+                            (aref sub 0)
+                            (return-from fmt-wifi "no link")))))
+          (format nil "~A"
+                  essid))
+      ;; CLISP has annoying newlines in their error messages... Just
+      ;; print a string showing our confusion.
+      (t (c) (format nil "~A" c)))))
+
 ;;; Add mode-line formatter
 
 (add-screen-mode-line-formatter #\I #'fmt-wifi)
+(add-screen-mode-line-formatter #\i #'fmt-wifi-essid)
 
 ;;; EOF
